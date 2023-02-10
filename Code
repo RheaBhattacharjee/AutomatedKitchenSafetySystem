@@ -1,0 +1,139 @@
+#include<SoftwareSerial.h>
+int sensorPin = A0; // select the input pin for the LDR
+int sensorValue = 0; // variable to store the value coming from the sensor
+int IRSensor = 9; // connect ir sensor module to Arduino pin 9
+int buz = 13; // conect LED to Arduino pin 13
+void setup()
+{
+ Serial.begin(9600); 
+ Serial.println("Serial Working"); // Test to check if serial is working or not
+ pinMode(IRSensor, INPUT); // IR Sensor pin INPUT
+ pinMode(buz, OUTPUT); // LED Pin Output
+}
+void loop()
+{
+ Serial.println("No fire");
+sensorValue = analogRead(sensorPin);
+//Serial.println(sensorValue);
+if (sensorValue < 100)
+{
+Serial.println("Fire Detected");
+Serial.println("LED on");
+//digitalWrite(led,HIGH);
+//digitalWrite(buzzer,HIGH);
+delay(100000);
+}
+ int sensorStatus = digitalRead(IRSensor); // Set the GPIO as Input
+ if (sensorStatus == 1) // Check if the pin high or not
+ {
+ // if the pin is high turn off the onboard Led
+ digitalWrite(buz, LOW); // LED LOW
+ Serial.println("NO MOTION DETECTED!"); // print Motion Detected! on the 
+serial monitor window
+ }
+ else
+ {
+ //else turn on the onboard LED
+ digitalWrite(buz, HIGH); // LED High
+ Serial.println("Motion DETECTED !"); // print Motion Ended! on the serial 
+monitor window
+ }
+}
+CODE: (wifi module for sending notification through mail)
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <ESP8266WebServer.h>
+#define LED D0 // Led in NodeMCU at pin GPIO16 
+(D0).
+#define trigPin D4
+#define echoPin D3
+long duration;
+int distance;
+const char* ssid = "WIFI NAME";
+const char* password = "WIFI PASSWORD";
+const char* host = "api.pushingbox.com";
+const char* devid = "API KEY";
+void setup()
+{
+Serial.begin(9600);
+pinMode(LED, OUTPUT); // LED pin as output.
+pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
+18
+pinMode(echoPin, INPUT); // Sets the echoPin as an Input
+delay(10);
+// We start by connecting to a WiFi network
+Serial.println();
+Serial.println();
+Serial.print("Connecting to ");
+Serial.println(ssid);
+WiFi.begin(ssid, password);
+while (WiFi.status() != WL_CONNECTED) {
+delay(500);
+Serial.print(".");
+}
+Serial.println("");
+Serial.println("WiFi connected");
+Serial.println("IP address: ");
+Serial.println(WiFi.localIP());
+19
+}
+int value = 0;
+void loop()
+{
+delay(1000);
+digitalWrite(trigPin, LOW);
+delayMicroseconds(2);
+digitalWrite(trigPin, HIGH);
+delayMicroseconds(10);
+digitalWrite(trigPin, LOW);
+duration = pulseIn(echoPin, HIGH);
+distance= duration*0.034/2;
+value = analogRead(A0);
+20
+Serial.print("Fire Sensor : ");
+Serial.println(value);
+digitalWrite(LED, HIGH);// turn the LED off.(Note that 
+LOW is the voltage level but actually 
+//the LED is on; this is because it is acive low on 
+the ESP8266.
+if(value > 13 || 10 > distance > 2){ //value from sensor if dry
+digitalWrite(LED, LOW); // turn the LED on.
+Serial.print("connecting to ");
+Serial.println(host);
+// Use WiFiClient class to create TCP connections
+WiFiClient client;
+const int httpPort = 80;
+if (!client.connect(host, httpPort)) {
+Serial.println("connection failed");
+return;
+}
+21
+// We now create a URI for the request
+String url = "/pushingbox";
+url += "?devid=";
+url += devid;
+Serial.print("Requesting URL: ");
+Serial.println(url);
+// This will send the request to the server
+client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+"Host: " + host + "\r\n" +
+"Connection: close\r\n\r\n");
+unsigned long timeout = millis();
+while (client.available() == 0) {
+if (millis() - timeout > 5000) {
+Serial.println(">>> Client Timeout !");
+client.stop();
+return;
+}
+}
+// Read all the lines of the reply from server and print them to 
+Serial
+22
+while(client.available()) {
+String line = client.readStringUntil('\r');
+Serial.print(line);
+}
+Serial.println();
+Serial.println("closing connection");
+}else{;}
+}
